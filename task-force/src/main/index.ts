@@ -1,7 +1,8 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, globalShortcut } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { create } from 'domain'
 
 function createWindow(): void {
   // Create the browser window.
@@ -35,6 +36,33 @@ function createWindow(): void {
   }
 }
 
+function createOverlay(): void {
+  const overlayWindow = new BrowserWindow({
+    x: 400,
+    y: 300,
+    width: 400,
+    height: 300,
+    frame: false,
+    show: false,
+    skipTaskbar: true, // <-- Add this line
+    webPreferences: {
+      preload: join(__dirname, '../preload/overlay.js'),
+      sandbox: false
+    }
+  })
+
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    overlayWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  } else {
+    overlayWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+
+  overlayWindow.once('ready-to-show', () => {
+    overlayWindow.show()
+  })
+}
+
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -58,6 +86,28 @@ app.whenReady().then(() => {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
+
+
+  // overlay window stuff
+
+//   globalShortcut.register('Alt+CommandOrControl+I', () => {
+//     console.log('Electron loves global shortcuts!')
+//   })
+
+// }).then(createOverlay)
+
+
+})
+
+
+
+// overlay stuff
+
+app.whenReady().then(() => {
+  globalShortcut.register('Alt+=', () => {
+    console.log('shortcut registered')
+    createOverlay()
   })
 })
 
